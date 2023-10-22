@@ -45,12 +45,12 @@ json = {
 POST/ https://amused-hedgehog-lovely.ngrok-free.app/api/add_register/
 
 * Consultar todos os Registro de uma sala
-GET/    https://amused-hedgehog-lovely.ngrok-free.app/api/room_register/romm_name/
+GET/    https://amused-hedgehog-lovely.ngrok-free.app/api/room_register/<room_name>/
 retorna 
     [{"item": {"id": 6, "name": "1111111111", "barcode": "11111111", "room": "A202"},
      "room": "A202", "date": "2023-10-18"}  ...] 
      
 * Consultar todos os Registro de um produto
-GET/    https://amused-hedgehog-lovely.ngrok-free.app/api/room_register/barcode/
+GET/    https://amused-hedgehog-lovely.ngrok-free.app/api/room_register/<barcode>/
 retorna [{"item": {"id": 7, "name": "33333333333", "barcode": "3333333333", "room": "A202"},
          "room": "A202", "date": "2023-10-18"}...]
