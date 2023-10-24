@@ -75,11 +75,10 @@ def add_read(request):
         data = json.loads(request.body)
         item = Item.objects.filter(barcode=data['barcode']).first()
         room = data['room']
-        reg = Registers(
+        reg, created = Registers.objects.update_or_create(
             item=item,
             room=room
         )
-        reg.save()
         return HttpResponse(f"REGISTRO INCLUIDO COM SUCESSO")
 
 
