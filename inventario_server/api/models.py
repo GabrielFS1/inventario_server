@@ -12,6 +12,6 @@ class Item(models.Model):
 class Registers(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     room = models.CharField(max_length=120)
-    date = models.DateField(default=datetime.datetime.now)
+    date = models.DateTimeField(default=datetime.datetime.now)
 
 
