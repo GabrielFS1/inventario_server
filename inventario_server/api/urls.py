@@ -19,12 +19,25 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
-    path("salas/", views.salas, name="salas"),
    
-    path("add_item/", views.add_item, name="add_item"),
-    path("item/<str:barcode>/", views.get_item, name="get_item"),
-    path("del_item/<str:barcode>/", views.delete_item, name="delete_item"),
+    path("salas_listar/", views.salas_pesquisar, name="salas_listar"),
+    path("sala_consultar/<str:room_id>/", views.sala_consultar, name="sala_consultar"),
+    path("sala_incluir/", views.sala_incluir, name="sala_incluir"),
+     
+    path("inventarios_pesquisar/", views.inventarios_pesquisar, name="inventarios_pesquisar"),
+    path("inventario_consultar/<str:id_inventario>/", views.inventario_consultar, name="inventario_consultar"),
+    path("inventario_incluir/", views.inventario_incluir, name="inventario_incluir"),
+     
+    path("items_listar/", views.items_listar, name="items_listar"),
+    path("item_consultar/<str:barcode>/", views.item_consultar, name="item_consultar"),
+    path("item_deletar/<str:barcode>/", views.item_deletar, name="item_deletar"),
+    path("item_incluir/", views.item_incluir, name="item_incluir"),
     
+    path("registros_listar/", views.registros_listar, name="registros_listar"),
+    path("registro_incluir/", views.registro_incluir, name="registro_incluir"),
+    path("registro_deletar/<str:id>/", views.item_deletar, name="item_deletar"),
+
+
     path("add_register/", views.add_register, name="add_register"),
     path("product_register/<str:barcode>/", views.get_register_by_product, name="get_register_by_product"),
     path("room_register/<str:room_name>/", views.get_register_by_room, name="get_register_by_room"),

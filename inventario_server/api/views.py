@@ -1,151 +1,291 @@
-from django.http import HttpResponse
-from django.shortcuts import render
-
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.forms.models import model_to_dict
-import json
-from django.http import JsonResponse
 from django.core.serializers import serialize
-from .models import Item, Registers
+import json
+from .models import Inventory, Item, Registers, Room
 
 
-# Create your views here.
 def index(request):
     return HttpResponse("BORELLI GADO")
 
 
-list_salas = ['A101', 'B202', 'C305']
-def salas(request):
+@csrf_exempt
+def salas_pesquisar(request):
+    """Returns a list of rooms"""
     if request.method == "GET":
-        dict = []
-        for sala in list_salas:
-            dict.append({"nome_sala": sala})
+        limit = request.GET.get('limit', 3)
+        try:
+            limit = int(limit)
+        except ValueError:
+            return JsonResponse({"error": "Invalid limit parameter"}, status=400)
 
-        json_response = json.dumps(dict) 
-
-        return HttpResponse(json_response)
+        rooms = Room.objects.all()[:limit]
+        serialized_rooms = serialize('json', rooms)
+        return HttpResponse(serialized_rooms, content_type='application/json')
     else:
-        return HttpResponse(404)
+        return HttpResponse(status=403)
 
-@csrf_exempt 
-def add_item(request):
-    """ Adds an item to the database
-    :param:
-    """
+
+@csrf_exempt
+def sala_consultar(request, room_id):
+    """Returns a single room by ID"""
+    if request.method == "GET":
+        try:
+            room = Room.objects.get(pk=room_id)
+        except Room.DoesNotExist:
+            return JsonResponse({"error": "Room not found"}, status=404)
+
+        serialized_room = serialize('json', [room])
+        return HttpResponse(serialized_room, content_type='application/json')
+    else:
+        return HttpResponse(status=403)
+
+
+@csrf_exempt
+def sala_incluir(request):
+    """Inserts a new room"""
     if request.method == "POST":
         data = json.loads(request.body)
-        item = Item(name=data['name'],
-            barcode=data['barcode'],
-            room=data['room']
-        )
-        item.save()
-        return HttpResponse(f"ITEM {data['name']} INCLUIDO COM SUCESSO")
+        room = Room(name=data['name'])
+        room.save()
+        return HttpResponse(status=201)
+    else:
+        return HttpResponse(status=403)
 
-@csrf_exempt 
-def delete_item(request, barcode):
-    """ Deletes an item to the database
-    :param:
-    """
-    if request.method == "POST":
-        item = Item.objects.filter(barcode=barcode).all()
 
-        if not item:
-            return HttpResponse(json.dumps({"Erro": "Item nao encontrado"}))
-        else:
-            item.delete()
-        return HttpResponse(f"ITEM COM CÓDIGO: {item['name']} DELTETADO COM SUCESSO")
+@csrf_exempt
+def items_listar(request):
+    """Returns a list of items"""
+    if request.method == "GET":
+        limit = request.GET.get('limit', 50)
+        try:
+            limit = int(limit)
+        except ValueError:
+            return JsonResponse({"error": "Invalid limit parameter"}, status=400)
 
-def get_item(request, barcode):
+        items = Item.objects.all()[:limit]
+        serialized_items = serialize('json', items)
+        return HttpResponse(serialized_items, content_type='application/json')
+    else:
+        return HttpResponse(status=403)
+
+
+@csrf_exempt
+def item_consultar(request, barcode):
+    """Returns a single item by barcode"""
     if request.method == "GET":
         item = Item.objects.filter(barcode=barcode).first()
-
         if not item:
-            return HttpResponse(json.dumps({"Erro": "Item nao encontrado"}))
-        else:
-            obj = model_to_dict(item)
-            return HttpResponse(json.dumps(obj))
+            return JsonResponse({"error": "Item not found"}, status=404)
+
+        obj = model_to_dict(item)
+        return JsonResponse(obj)
+    else:
+        return HttpResponse(status=403)
 
 
-@csrf_exempt 
-def add_read(request):
-    """ Adds an read to the database
-    :param: barcode -> 
-    """
+@csrf_exempt
+def item_deletar(request, barcode):
+    """Deletes an item by barcode"""
+    if request.method == "DELETE":
+        item = Item.objects.filter(barcode=barcode).first()
+        if not item:
+            return JsonResponse({"error": "Item not found"}, status=404)
+
+        item.delete()
+        return HttpResponse(status=204)
+    else:
+        return HttpResponse(status=403)
+
+
+@csrf_exempt
+def item_incluir(request):
+    """Inserts a new item"""
     if request.method == "POST":
         data = json.loads(request.body)
-        item = Item.objects.filter(barcode=data['barcode']).first()
-        room = data['room']
+        try:
+            room = Room.objects.get(pk=data['room'])
+        except Room.DoesNotExist:
+            return JsonResponse({"error": "Room not found"}, status=404)
+
+        item = Item(name=data['name'], barcode=data['barcode'], room=room)
+        item.save()
+        return HttpResponse(status=201)
+    else:
+        return HttpResponse(status=403)
+
+
+@csrf_exempt
+def registros_listar(request):
+    """Returns a list of registers"""
+    if request.method == "GET":
+        registers = Registers.objects.all()
+        serialized_registers = serialize('json', registers)
+        return HttpResponse(serialized_registers, content_type='application/json')
+    else:
+        return HttpResponse(status=403)
+
+
+@csrf_exempt
+def registro_incluir(request):
+    """Inserts a new register"""
+    if request.method == "POST":
+        data = json.loads(request.body)
+        try:
+            item = Item.objects.get(pk=data['item'])
+            room = Room.objects.get(pk=data['room'])
+            inventory = Inventory.objects.get(pk=data['inventory'])
+        except (Item.DoesNotExist, Room.DoesNotExist, Inventory.DoesNotExist):
+            return JsonResponse({"error": "Item, Room or Inventory not found"}, status=404)
+
+        reg = Registers(
+            item=item,
+            room=room,
+            inventory=inventory,
+            author=data.get('author', '')
+        )
+        reg.save()
+        return HttpResponse(status=201)
+    else:
+        return HttpResponse(status=403)
+
+
+@csrf_exempt
+def registro_deletar(request, register_id):
+    """Deletes a register by ID"""
+    if request.method == "DELETE":
+        try:
+            reg = Registers.objects.get(pk=register_id)
+        except Registers.DoesNotExist:
+            return JsonResponse({"error": "Register not found"}, status=404)
+
+        reg.delete()
+        return HttpResponse(status=204)
+    else:
+        return HttpResponse(status=403)
+
+
+@csrf_exempt
+def add_item(request):
+    """Adds an item to the database"""
+    if request.method == "POST":
+        data = json.loads(request.body)
+        item = Item(
+            name=data['name'],
+            barcode=data['barcode'],
+            room_id=data['room']
+        )
+        item.save()
+        return HttpResponse(status=201)
+    else:
+        return HttpResponse(status=403)
+
+
+def get_item(request, barcode):
+    """Gets an item by barcode"""
+    if request.method == "GET":
+        item = Item.objects.filter(barcode=barcode).first()
+        if not item:
+            return JsonResponse({"error": "Item not found"}, status=404)
+
+        obj = model_to_dict(item)
+        return JsonResponse(obj)
+    else:
+        return HttpResponse(status=403)
+
+
+@csrf_exempt
+def add_read(request):
+    """Adds a read to the database"""
+    if request.method == "POST":
+        data = json.loads(request.body)
+        try:
+            item = Item.objects.get(barcode=data['barcode'])
+            room = Room.objects.get(pk=data['room'])
+        except (Item.DoesNotExist, Room.DoesNotExist):
+            return JsonResponse({"error": "Item or Room not found"}, status=404)
+
         reg, created = Registers.objects.update_or_create(
             item=item,
             room=room
         )
-        return HttpResponse(f"REGISTRO INCLUIDO COM SUCESSO")
+        return HttpResponse("REGISTRO INCLUIDO COM SUCESSO", status=201)
+    else:
+        return HttpResponse(status=403)
 
 
-
-@csrf_exempt 
+@csrf_exempt
 def add_register(request):
-    """ Adds an read to the database
-    :param: barcode -> 
-    """
+    """Adds a register to the database"""
     if request.method == "POST":
         data = json.loads(request.body)
-        item = Item.objects.filter(barcode=data['barcode']).first()
-        room = data['room']
+        try:
+            item = Item.objects.get(barcode=data['barcode'])
+            room = Room.objects.get(pk=data['room'])
+        except (Item.DoesNotExist, Room.DoesNotExist):
+            return JsonResponse({"error": "Item or Room not found"}, status=404)
+
         reg = Registers(
             item=item,
             room=room
         )
         reg.save()
-        return HttpResponse(f"REGISTRO INCLUIDO COM SUCESSO")
+        return HttpResponse("REGISTRO INCLUIDO COM SUCESSO", status=201)
+    else:
+        return HttpResponse(status=403)
 
-@csrf_exempt 
+
+@csrf_exempt
 def del_register(request, register_id):
-    """ Deletes an read from the database
-    :param: barcode -> 
-    """
-    if request.method == "POST":
-        reg = Registers.objects.get(pk=register_id)
+    """Deletes a register by ID"""
+    if request.method == "DELETE":
+        try:
+            reg = Registers.objects.get(pk=register_id)
+        except Registers.DoesNotExist:
+            return JsonResponse({"error": "Register not found"}, status=404)
+
         reg.delete()
-        return HttpResponse(f"REGISTRO EXCLUIDO COM SUCESSO")
+        return HttpResponse("REGISTRO EXCLUIDO COM SUCESSO", status=204)
+    else:
+        return HttpResponse(status=403)
+
 
 def get_register_by_room(request, room_name):
-    """
-    https://amused-hedgehog-lovely.ngrok-free.app/api/room_register/A202/
-    """
+    """Gets registers by room name"""
     if request.method == "GET":
-        registers = Registers.objects.filter(room=room_name).all()
-
+        registers = Registers.objects.filter(room__name=room_name).all()
         if not registers:
-            return HttpResponse(json.dumps({"Erro": "Registro nao encontrado"}))
-        else:
-            reg = []
-            serialized_data = serialize("json", registers)
-            serialized_data = json.loads(serialized_data)
-            for data in serialized_data:
-                item = Item.objects.get(pk=data["fields"]['item'])
-                data["fields"]['item'] = model_to_dict(item)
-                reg.append(data["fields"])
+            return JsonResponse({"error": "Registro nao encontrado"}, status=404)
 
-            return HttpResponse(json.dumps(reg))
+        reg = []
+        serialized_data = serialize("json", registers)
+        serialized_data = json.loads(serialized_data)
+        for data in serialized_data:
+            item = Item.objects.get(pk=data["fields"]['item'])
+            data["fields"]['item'] = model_to_dict(item)
+            reg.append(data["fields"])
+
+        return JsonResponse(reg, safe=False)
+    else:
+        return HttpResponse(status=403)
+
 
 def get_register_by_product(request, barcode):
-    """
-    https://amused-hedgehog-lovely.ngrok-free.app/api/product_register/3333333333/
-    
-    """
+    """Gets registers by product barcode"""
     if request.method == "GET":
         registers = Registers.objects.filter(item__barcode=barcode).all()
-
         if not registers:
-            return HttpResponse(json.dumps({"Erro": "Registro nao encontrado"}))
-        else:
-            reg = []
-            serialized_data = serialize("json", registers)
-            serialized_data = json.loads(serialized_data)
-            for data in serialized_data:
-                item = Item.objects.get(pk=data["fields"]['item'])
-                data["fields"]['item'] = model_to_dict(item)
-                reg.append(data["fields"])
+            return JsonResponse({"error": "Registro nao encontrado"}, status=404)
 
-            return HttpResponse(json.dumps(reg))
+        reg = []
+        serialized_data = serialize("json", registers)
+        serialized_data = json.loads(serialized_data)
+        for data in serialized_data:
+            item = Item.objects.get(pk=data["fields"]['item'])
+            data["fields"]['item'] = model_to_dict(item)
+            reg.append(data["fields"])
+
+        return JsonResponse(reg, safe=False)
+    else:
+        return HttpResponse(status=403)

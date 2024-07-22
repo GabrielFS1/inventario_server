@@ -15,35 +15,15 @@ def del_item():
     print(r)
 
 d = {
-    "name" : "ADWHUHGAIOWHD",
-    "barcode": 27937812769348712,
-    "room": "A202"
-}
-#add_item(d)
-
-d = {
-    "name" : "1111111111",
-    "barcode": 11111111,
-    "room": "A202"
-}
-#add_item(d)
-d = {
     "name" : "33333333333",
     "barcode": 3333333333,
     "room": "A202"
 }
+#add_item(d)
 
 
 d = {
     "barcode": 3333333333,
     "room": "A202"
 }
-add_register(d)     
-
-d = {
-    "barcode": 11111111,
-    "room": "A202"
-}
 #add_register(d)     
-#add_item()
-#del_item()
