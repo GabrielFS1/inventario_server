@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.forms.models import model_to_dict
 from django.core.serializers import serialize
 import json
+from django.shortcuts import get_object_or_404
 from .models import Inventory, Item, Registers, Room
 
 
@@ -165,7 +166,62 @@ def registro_deletar(request, register_id):
     else:
         return HttpResponse(status=403)
 
+#========================================
+# INVENTARIO 
+@csrf_exempt
+def inventarios_pesquisar(request):
+    """Returns a list of inventories"""
+    if request.method == "GET":
+        inventories = Inventory.objects.all()
+        serialized_inventories = serialize('json', inventories)
+        return HttpResponse(serialized_inventories, content_type='application/json')
+    else:
+        return HttpResponse(status=403)
 
+@csrf_exempt
+def inventario_consultar(request, id_inventario):
+    """Returns a single inventory by ID"""
+    if request.method == "GET":
+        inventory = get_object_or_404(Inventory, pk=id_inventario)
+        serialized_inventory = serialize('json', [inventory])
+        return HttpResponse(serialized_inventory, content_type='application/json')
+    else:
+        return HttpResponse(status=403)
+
+@csrf_exempt
+def inventario_incluir(request):
+    """Inserts a new inventory"""
+    if request.method == "POST":
+        data = json.loads(request.body)
+        inventory = Inventory(name=data['name'])
+        inventory.save()
+        return JsonResponse({'id': inventory.id}, status=201)
+    else:
+        return HttpResponse(status=403)
+
+@csrf_exempt
+def inventario_atualizar(request, id_inventario):
+    """Updates an existing inventory by ID"""
+    if request.method == "PUT":
+        data = json.loads(request.body)
+        inventory = get_object_or_404(Inventory, pk=id_inventario)
+        inventory.name = data.get('name', inventory.name)
+        inventory.save()
+        return JsonResponse({'id': inventory.id}, status=200)
+    else:
+        return HttpResponse(status=403)
+
+@csrf_exempt
+def inventario_deletar(request, id_inventario):
+    """Deletes an inventory by ID"""
+    if request.method == "DELETE":
+        inventory = get_object_or_404(Inventory, pk=id_inventario)
+        inventory.delete()
+        return HttpResponse(status=204)
+    else:
+        return HttpResponse(status=403)
+    
+#========================================
 @csrf_exempt
 def add_item(request):
     """Adds an item to the database"""
