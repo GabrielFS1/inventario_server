@@ -22,8 +22,10 @@ def salas_pesquisar(request):
             return JsonResponse({"error": "Invalid limit parameter"}, status=400)
 
         rooms = Room.objects.all()[:limit]
-        serialized_rooms = serialize('json', rooms)
-        return HttpResponse(serialized_rooms, content_type='application/json')
+        
+        rooms = json.dumps(rooms)
+        
+        return HttpResponse(rooms, content_type='application/json')
     else:
         return HttpResponse(status=403)
 
@@ -37,8 +39,11 @@ def sala_consultar(request, room_id):
         except Room.DoesNotExist:
             return JsonResponse({"error": "Room not found"}, status=404)
 
-        serialized_room = serialize('json', [room])
-        return HttpResponse(serialized_room, content_type='application/json')
+        room = model_to_dict(room)
+        
+        data = json.dumps(room)
+        
+        return HttpResponse(data, content_type='application/json')
     else:
         return HttpResponse(status=403)
 
@@ -66,8 +71,15 @@ def items_listar(request):
             return JsonResponse({"error": "Invalid limit parameter"}, status=400)
 
         items = Item.objects.all()[:limit]
-        serialized_items = serialize('json', items)
-        return HttpResponse(serialized_items, content_type='application/json')
+
+        data = []
+
+        for item in items:
+            data.append({"id": item.id, "name": item.name, "barcode": item.barcode, "room": item.room.name})
+
+        data = json.dumps(data)
+
+        return HttpResponse(data, content_type='application/json')
     else:
         return HttpResponse(status=403)
 
@@ -95,7 +107,7 @@ def item_deletar(request, barcode):
             return JsonResponse({"error": "Item not found"}, status=404)
 
         item.delete()
-        return HttpResponse(status=204)
+        return HttpResponse(status=200)
     else:
         return HttpResponse(status=403)
 
@@ -111,8 +123,10 @@ def item_incluir(request):
             return JsonResponse({"error": "Room not found"}, status=404)
 
         item = Item(name=data['name'], barcode=data['barcode'], room=room)
+        
         item.save()
-        return HttpResponse(status=201)
+        
+        return HttpResponse(status=200)
     else:
         return HttpResponse(status=403)
 
@@ -122,8 +136,19 @@ def registros_listar(request):
     """Returns a list of registers"""
     if request.method == "GET":
         registers = Registers.objects.all()
-        serialized_registers = serialize('json', registers)
-        return HttpResponse(serialized_registers, content_type='application/json')
+        data = []
+        for register in registers:
+            data.append({
+                "id": register.id,
+                "item": register.item.name,
+                "room": register.room.name,
+                "inventory": register.inventory.name,
+                "author": register.author,
+                "date": register.date.isoformat()}
+            )
+        data = json.dumps(data)
+
+        return HttpResponse(data, content_type='application/json')
     else:
         return HttpResponse(status=403)
 
@@ -173,7 +198,11 @@ def inventarios_pesquisar(request):
     """Returns a list of inventories"""
     if request.method == "GET":
         inventories = Inventory.objects.all()
-        serialized_inventories = serialize('json', inventories)
+        data = []
+        for inventory in inventories:
+            data.append({"id": inventory.id, "name": inventory.name, "date": inventory.date.isoformat()})
+
+        serialized_inventories = json.dumps(data)
         return HttpResponse(serialized_inventories, content_type='application/json')
     else:
         return HttpResponse(status=403)
@@ -183,7 +212,8 @@ def inventario_consultar(request, id_inventario):
     """Returns a single inventory by ID"""
     if request.method == "GET":
         inventory = get_object_or_404(Inventory, pk=id_inventario)
-        serialized_inventory = serialize('json', [inventory])
+        data = {"id": inventory.id, "name": inventory.name, "date": inventory.date.isoformat()}
+        serialized_inventory = json.dumps(data)
         return HttpResponse(serialized_inventory, content_type='application/json')
     else:
         return HttpResponse(status=403)
