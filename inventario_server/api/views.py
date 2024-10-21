@@ -5,6 +5,7 @@ from django.core.serializers import serialize
 import json
 from django.shortcuts import get_object_or_404
 from .models import Inventory, Item, Registers, Room
+from django.core import serializers
 
 
 def index(request):
@@ -23,9 +24,9 @@ def salas_pesquisar(request):
 
         rooms = Room.objects.all()[:limit]
         
-        rooms = json.dumps(rooms)
+        rooms_list = list(rooms.values())  # Convert queryset to list of dictionaries
         
-        return HttpResponse(rooms, content_type='application/json')
+        return JsonResponse(rooms_list, safe=False)  # Return as JSON response 
     else:
         return HttpResponse(status=403)
 
