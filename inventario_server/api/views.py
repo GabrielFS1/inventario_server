@@ -4,7 +4,7 @@ from django.forms.models import model_to_dict
 from django.core.serializers import serialize
 import json
 from django.shortcuts import get_object_or_404
-from .models import Inventory, Item, Registers, Room
+from .models import Inventory, Item, Registers
 from django.core import serializers
 
 
@@ -32,13 +32,13 @@ def salas_pesquisar(request):
 
 
 @csrf_exempt
-def sala_consultar(request, room_id):
+def sala_consultar(request, room_name):
     """Returns a single room by ID"""
     if request.method == "GET":
         try:
-            room = Room.objects.get(pk=room_id)
-        except Room.DoesNotExist:
-            return JsonResponse({"error": "Room not found"}, status=404)
+            registers = Registers.objects.filter(room=room_name).all()
+        except Registers.DoesNotExist:
+            return JsonResponse({"error": "Register for room not found"}, status=404)
 
         room = model_to_dict(room)
         
@@ -48,17 +48,6 @@ def sala_consultar(request, room_id):
     else:
         return HttpResponse(status=403)
 
-
-@csrf_exempt
-def sala_incluir(request):
-    """Inserts a new room"""
-    if request.method == "POST":
-        data = json.loads(request.body)
-        room = Room(name=data['name'])
-        room.save()
-        return HttpResponse(status=201)
-    else:
-        return HttpResponse(status=403)
 
 
 @csrf_exempt
@@ -118,13 +107,7 @@ def item_incluir(request):
     """Inserts a new item"""
     if request.method == "POST":
         data = json.loads(request.body)
-        try:
-            room = Room.objects.get(pk=data['room'])
-        except Room.DoesNotExist:
-            return JsonResponse({"error": "Room not found"}, status=404)
-
-        item = Item(name=data['name'], barcode=data['barcode'], room=room)
-        
+        item = Item(name=data['name'], barcode=data['barcode'], room=data['room'])
         item.save()
         
         return HttpResponse(status=200)
@@ -157,18 +140,25 @@ def registros_listar(request):
 @csrf_exempt
 def registro_incluir(request):
     """Inserts a new register"""
+    """Parameters:
+    {
+        "room": "A202",
+        "inventory": 1,
+        "author": "John Doe"
+    }
+    """
+
     if request.method == "POST":
         data = json.loads(request.body)
         try:
-            item = Item.objects.get(pk=data['item'])
-            room = Room.objects.get(pk=data['room'])
+            item = Item.objects.filter(barcode=data['barcode']).first()
             inventory = Inventory.objects.get(pk=data['inventory'])
-        except (Item.DoesNotExist, Room.DoesNotExist, Inventory.DoesNotExist):
+        except (Item.DoesNotExist, Inventory.DoesNotExist):
             return JsonResponse({"error": "Item, Room or Inventory not found"}, status=404)
 
         reg = Registers(
             item=item,
-            room=room,
+            room=data['room'],
             inventory=inventory,
             author=data.get('author', '')
         )
