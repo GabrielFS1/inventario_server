@@ -22,6 +22,7 @@ urlpatterns = [
    
     path("salas_listar/", views.salas_pesquisar, name="salas_listar"),
     path("sala_consultar/<str:room_id>/", views.sala_consultar, name="sala_consultar"),
+    path("sala_incluir/", views.sala_incluir, name="sala_incluir"),
      
     path("inventarios_pesquisar/", views.inventarios_pesquisar, name="inventarios_pesquisar"),
     path("inventario_consultar/<str:id_inventario>/", views.inventario_consultar, name="inventario_consultar"),
